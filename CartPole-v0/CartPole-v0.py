@@ -12,7 +12,7 @@ class DQNCartPoleSolver():
     def __init__(self, n_episodes=10000, n_win_ticks=5000, max_env_steps=None, gamma=1.0, epsilon=1.0, epsilon_min=0.0,
                  epsilon_log_decay=0.9, alpha=0.03, alpha_decay=0.005, batch_size=64, monitor=False, quiet=False):
         self.memory = deque(maxlen=100000)
-        self.env = gym.make('CartPole-v1')
+        self.env = gym.make('CartPole-v2')
         if monitor: self.env = gym.wrappers.Monitor(self.env, '../data/cartpole-1', force=True)
         self.gamma = gamma
         self.epsilon = epsilon
@@ -28,7 +28,8 @@ class DQNCartPoleSolver():
 
         # Init model
         self.model = Sequential()
-        self.model.add(Dense(72, input_dim=4, activation='tanh', kernel_initializer='glorot_normal', bias_initializer='glorot_normal'))
+        self.model.add(Dense(72, input_dim=4, activation='tanh', kernel_initializer='Ones', bias_initializer='glorot_normal')) # Work Well Almost Everytime
+        #self.model.add(Dense(72, input_dim=4, activation='tanh', kernel_initializer='glorot_normal', bias_initializer='glorot_normal')) # Best try 19 episodes
         self.model.add(Dense(144, activation='tanh', kernel_initializer='glorot_normal'))
         self.model.add(Dense(2, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.alpha, decay=self.alpha_decay))
@@ -83,17 +84,30 @@ class DQNCartPoleSolver():
 
             while not done:
 
-                if i>=50 or i == 0: self.env.render()
+                if i>=100 or i == 0: self.env.render()
                 action = self.choose_action(state, self.get_epsilon(e))
                 next_state, reward, done, _ = self.env.step(action)
                 next_state = self.preprocess_state(next_state)
+                # x, x_dot, theta, theta_dot
                 #reward -= abs(next_state[0][0]) # x
-                if abs(next_state[0][1]) <= abs(state[0][1]): reward += 0.1
-                else: reward -= 0.1
+
+                #if abs(next_state[0][2]) <= abs(state[0][2]):
+                #reward += 0.7*(abs(next_state[0][2])-abs(state[0][2])) # theta
+                #else: reward -= 0.2
+                #if abs(next_state[0][0]) <= abs(state[0][0]):
+                reward += 0.45*(abs(next_state[0][0])-abs(state[0][0])) # x
+
+                reward += 0.7*(abs(next_state[0][3])-abs(state[0][3])) # theta_dot
+
+                #else: reward -= 0.1
+                if done: reward = -1
+
                 #print(state)
                 self.remember(state, action, reward, next_state, done)
                 state = next_state
                 i += 1
+                if i % 2000 == 0 and i != 0 and not done:
+                    print('... Current Time Step', i)
 
             print('Ep No. %d, score %d' %(e+1, i))
 
@@ -108,8 +122,8 @@ class DQNCartPoleSolver():
 
 
             self.replay(self.batch_size)
-            if   e + 1 > 2000: train_target = 1000
-            elif e + 1 > 1000: train_target = 250
+
+            if e + 1 > 1000: train_target = 250
             elif e + 1 > 800: train_target = 200
             elif e + 1 > 500: train_target = 100
             elif e + 1 > 300: train_target = 50
