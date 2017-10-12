@@ -6,7 +6,7 @@ from collections import deque
 from keras.models import Sequential, clone_model
 from keras.layers import Dense
 from keras.optimizers import Adam
-from keras.initializers import TruncatedNormal, glorot_normal, Ones, lecun_uniform
+from keras.initializers import TruncatedNormal, glorot_normal, Ones, lecun_uniform, Zeros
 
 class DQNCartPoleSolver():
     def __init__(self, n_episodes=10000, n_win_ticks=5000, max_env_steps=None, gamma=1.0, epsilon=1.0, epsilon_min=0.0,
@@ -28,14 +28,19 @@ class DQNCartPoleSolver():
 
         # Init model
         self.model = Sequential()
-        self.model.add(Dense(72, input_dim=4, activation='tanh', kernel_initializer='Ones', bias_initializer='glorot_normal')) # Work Well Almost Everytime
-        #self.model.add(Dense(72, input_dim=4, activation='tanh', kernel_initializer='glorot_normal', bias_initializer='glorot_normal')) # Best try 19 episodes
+        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones', bias_initializer='Zeros')) # Best try 6 episodes
+        self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones',bias_initializer='Ones'))
+        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='glorot_normal', bias_initializer='glorot_normal')) # Best try 19 episodes
+        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones', bias_initializer='glorot_normal'))# Work Well Almost Everytime
         self.model.add(Dense(144, activation='tanh', kernel_initializer='glorot_normal'))
+        #self.model.add(Dense(144, activation='tanh', kernel_initializer='Ones'))
         self.model.add(Dense(2, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.alpha, decay=self.alpha_decay))
 
         self.target_net = clone_model(self.model)  # old network, used to evaluate actions
         self.target_net.compile(loss='mse', optimizer=Adam(lr=self.alpha, decay=self.alpha_decay))
+
+        self.i_ = deque(maxlen=5)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -48,7 +53,8 @@ class DQNCartPoleSolver():
         return max(self.epsilon_min, min(self.epsilon, 1.0 - math.log10((t + 1) * self.epsilon_decay)))
 
     def preprocess_state(self, state):
-        return np.reshape(state, [1, 4])
+        state=np.insert(state, 4, sum(self.i_))
+        return np.reshape(state, [1, 5])
 
     def replay(self, batch_size):
         x_batch, y_batch = [], []
@@ -88,6 +94,9 @@ class DQNCartPoleSolver():
                 action = self.choose_action(state, self.get_epsilon(e))
                 next_state, reward, done, _ = self.env.step(action)
                 next_state = self.preprocess_state(next_state)
+
+                self.i_.append(next_state[0][2])
+
                 # x, x_dot, theta, theta_dot
                 #reward -= abs(next_state[0][0]) # x
 
@@ -96,9 +105,9 @@ class DQNCartPoleSolver():
                 #else: reward -= 0.2
                 #if abs(next_state[0][0]) <= abs(state[0][0]):
                 reward += 0.45*(abs(next_state[0][0])-abs(state[0][0])) # x
-
                 reward += 0.7*(abs(next_state[0][3])-abs(state[0][3])) # theta_dot
-
+                reward -= 1.4*abs(next_state[0][4])
+                #print(1.2*abs(next_state[0][4]))
                 #else: reward -= 0.1
                 if done: reward = -1
 
