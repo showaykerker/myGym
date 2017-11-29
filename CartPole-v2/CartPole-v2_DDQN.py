@@ -111,10 +111,7 @@ class DQNCartPoleSolver():
                 # You can either give punishment/reward by comparing next_state[0] to state[0]
                 # or decide only by next_state[0], try to explain what makes the difference performance.
                 
-                reward = 0
-                reward -= 0.5*abs(next_state[0][0])
-                reward -= 0.45*(abs(next_state[0][0])-abs(state[0][0])) # x
-                reward -= 0.3*(abs(next_state[0][2])-abs(state[0][2])) # theta_dot
+
 
                 # your reward function here
 
@@ -153,4 +150,3 @@ class DQNCartPoleSolver():
 if __name__ == '__main__':
     agent = DQNCartPoleSolver()
     agent.run()
-    
