@@ -28,12 +28,8 @@ class DQNCartPoleSolver():
 
         # Init model
         self.model = Sequential()
-        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones', bias_initializer='Zeros')) # Best try 6 episodes
         self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones',bias_initializer='Ones'))
-        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='glorot_normal', bias_initializer='glorot_normal')) # Best try 19 episodes
-        #self.model.add(Dense(72, input_dim=5, activation='tanh', kernel_initializer='Ones', bias_initializer='glorot_normal'))# Work Well Almost Everytime
         self.model.add(Dense(144, activation='tanh', kernel_initializer='glorot_normal'))
-        #self.model.add(Dense(144, activation='tanh', kernel_initializer='Ones'))
         self.model.add(Dense(2, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.alpha, decay=self.alpha_decay))
 
@@ -58,11 +54,9 @@ class DQNCartPoleSolver():
 
     def replay(self, batch_size):
         x_batch, y_batch = [], []
-        minibatch = random.sample(
-            self.memory, min(len(self.memory), batch_size))
+        minibatch = random.sample(self.memory, min(len(self.memory), batch_size))
         for state, action, reward, next_state, done in minibatch:
             y_target = self.model.predict(state)
-
             y_target[0][action] = reward if done else reward + self.gamma * self.target_net.predict(next_state)[0][action]
             x_batch.append(state[0])
             y_batch.append(y_target[0])
@@ -97,13 +91,6 @@ class DQNCartPoleSolver():
 
                 self.i_.append(next_state[0][2])
 
-                # x, x_dot, theta, theta_dot
-                #reward -= abs(next_state[0][0]) # x
-
-                #if abs(next_state[0][2]) <= abs(state[0][2]):
-                #reward += 0.7*(abs(next_state[0][2])-abs(state[0][2])) # theta
-                #else: reward -= 0.2
-                #if abs(next_state[0][0]) <= abs(state[0][0]):
                 reward += 0.45*(abs(next_state[0][0])-abs(state[0][0])) # x
                 reward += 0.7*(abs(next_state[0][3])-abs(state[0][3])) # theta_dot
                 reward -= 1.4*abs(next_state[0][4])
