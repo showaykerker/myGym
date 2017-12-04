@@ -72,7 +72,8 @@ class DQNCartPoleSolver():
 
         for state, action, reward, next_state, done in minibatch:
             y_target = self.model.predict(state)
-            y_target[0][action] = reward if done else reward + self.gamma * self.target_net.predict(next_state)[0][action]
+            # Bellman Equation
+            y_target[0][action] = reward + self.gamma * np.max(self.target_net.predict(next_state)[0])
             x_batch.append(state[0])
             y_batch.append(y_target[0])
 
@@ -98,7 +99,7 @@ class DQNCartPoleSolver():
 
             while not done:
 
-                # gym.render is to display the cart
+                # gym.render is used to display the cart
                 if step_ >= 100 or step_ == 0: self.env.render() 
 
                 action = self.choose_action(state, self.get_epsilon(e))

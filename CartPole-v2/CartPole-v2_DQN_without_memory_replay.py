@@ -38,7 +38,7 @@ class DQNCartPoleSolver():
     def fitting(self, state, action, reward, next_state, done):
 
         y_target = self.model.predict(np.reshape(state, [1, 4]))
-        y_target[0][action] = reward if done else reward + self.gamma * self.model.predict(np.reshape(next_state, [1,4]))[0][action]
+        y_target[0][action] = reward if done else reward + self.gamma * np.max(self.model.predict(np.reshape(next_state, [1,4]))[0])
 
 
         self.model.fit(np.reshape(state,[1,4]), y_target, batch_size=1, verbose=0)
